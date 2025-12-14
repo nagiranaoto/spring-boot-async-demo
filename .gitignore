@@ -25,3 +25,9 @@ logs/
 # Temporary files
 *.tmp
 *.bak
+
+# Zenn article (draft)
+zenn-article.md
+
+# Other files
+travel-english-phrases.html

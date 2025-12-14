@@ -39,7 +39,7 @@ public class AsyncService {
         } catch (InterruptedException e) {
             logger.error("非同期タスクが中断されました", e);
             Thread.currentThread().interrupt();
-        }
+        } 
     }
 
     /**
