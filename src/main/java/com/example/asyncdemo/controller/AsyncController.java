@@ -6,13 +6,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.concurrent.CompletableFuture;
-
 /**
  * 非同期処理を呼び出すRESTコントローラー
+ *
+ * @Asyncの基本動作を理解するためのサンプル
  */
 @RestController
-@RequestMapping("/api/async")
+@RequestMapping("/api")
 public class AsyncController {
 
     private static final Logger logger = LoggerFactory.getLogger(AsyncController.class);
@@ -21,73 +21,51 @@ public class AsyncController {
     private AsyncService asyncService;
 
     /**
-     * 非同期タスクを実行（戻り値なし）
+     * 非同期処理を実行するエンドポイント
+     *
+     * このエンドポイントは非同期処理の完了を待たずにすぐにレスポンスを返す
      *
      * @param message 処理するメッセージ
      * @return レスポンスメッセージ
      */
-    @GetMapping("/task")
-    public String executeAsyncTask(@RequestParam(defaultValue = "デフォルトメッセージ") String message) {
+    @GetMapping("/async")
+    public String executeAsyncTask(@RequestParam(defaultValue = "テストメッセージ") String message) {
         logger.info("========================================");
-        logger.info("[1] リクエスト受信 - メッセージ: {} - スレッド: {}", message, Thread.currentThread().getName());
+        logger.info("[1] リクエスト受信 - メッセージ: {} - スレッド: {}",
+            message, Thread.currentThread().getName());
 
         // 非同期処理を開始（すぐに制御が返る）
         asyncService.executeAsyncTask(message);
 
-        logger.info("[2] レスポンス返却直前 - スレッド: {} ★非同期処理の完了を待たずにここに到達★", Thread.currentThread().getName());
+        logger.info("[2] レスポンス返却 - スレッド: {} ★非同期処理の完了を待たない★",
+            Thread.currentThread().getName());
         logger.info("========================================");
 
         return "非同期タスクを開始しました: " + message;
     }
 
     /**
-     * 非同期計算を実行（CompletableFutureを返す）
+     * 同期処理を実行するエンドポイント（比較用）
      *
-     * @param number 計算する数値
-     * @return CompletableFuture<String> 計算結果
-     */
-    @GetMapping("/calculate")
-    public CompletableFuture<String> executeAsyncCalculation(
-            @RequestParam(defaultValue = "10") int number) {
-
-        logger.info("非同期計算をリクエスト受信: {}", number);
-
-        // 非同期計算を実行し、結果を返す
-        return asyncService.executeAsyncCalculation(number)
-                .thenApply(result -> "計算結果: " + number + " × 2 = " + result);
-    }
-
-    /**
-     * 複数の非同期処理を並列実行
+     * このエンドポイントは処理が完了するまでレスポンスを返さない
      *
-     * @return CompletableFuture<String> 全ての結果
+     * @param message 処理するメッセージ
+     * @return レスポンスメッセージ
      */
-    @GetMapping("/parallel")
-    public CompletableFuture<String> executeParallelTasks() {
-        logger.info("並列非同期処理をリクエスト受信");
+    @GetMapping("/sync")
+    public String executeSyncTask(@RequestParam(defaultValue = "テストメッセージ") String message) {
+        logger.info("========================================");
+        logger.info("[同期1] リクエスト受信 - メッセージ: {} - スレッド: {}",
+            message, Thread.currentThread().getName());
 
-        // 複数の非同期処理を並列実行
-        CompletableFuture<String> user1 = asyncService.fetchUserData("user001");
-        CompletableFuture<String> user2 = asyncService.fetchUserData("user002");
-        CompletableFuture<String> user3 = asyncService.fetchUserData("user003");
+        // 同期処理を実行（完了まで待つ）
+        asyncService.executeSyncTask(message);
 
-        // すべての非同期処理が完了するのを待つ
-        return CompletableFuture.allOf(user1, user2, user3)
-                .thenApply(v -> {
-                    try {
-                        String result = String.format(
-                                "全ての非同期処理が完了しました:\n- %s\n- %s\n- %s",
-                                user1.get(),
-                                user2.get(),
-                                user3.get()
-                        );
-                        logger.info("並列非同期処理が完了");
-                        return result;
-                    } catch (Exception e) {
-                        logger.error("並列非同期処理でエラー発生", e);
-                        return "エラーが発生しました: " + e.getMessage();
-                    }
-                });
+        logger.info("[同期2] レスポンス返却 - スレッド: {} ★処理完了後にレスポンス★",
+            Thread.currentThread().getName());
+        logger.info("========================================");
+
+        return "同期タスクが完了しました: " + message;
     }
 
     /**
@@ -97,6 +75,6 @@ public class AsyncController {
      */
     @GetMapping("/health")
     public String health() {
-        return "非同期処理サービスは正常に動作しています";
+        return "Spring Boot Async Demo Application is running!";
     }
 }
